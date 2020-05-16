@@ -16,10 +16,10 @@ namespace Resolve.HotKeys
         public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
 
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        public static extern short GlobalAddAtom(string atomName);
+        public static extern int GlobalAddAtom(string atomName);
 
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
-        public static extern short GlobalDeleteAtom(int atom);
+        public static extern int GlobalDeleteAtom(int atom);
 
         [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
