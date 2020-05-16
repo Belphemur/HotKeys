@@ -19,7 +19,7 @@ namespace Resolve.HotKeys
         public static extern short GlobalAddAtom(string atomName);
 
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
-        public static extern short GlobalDeleteAtom(short atom);
+        public static extern short GlobalDeleteAtom(int atom);
 
         [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]

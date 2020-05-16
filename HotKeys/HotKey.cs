@@ -2,55 +2,27 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
-using System.Security;
-using System.Text;
 using System.Windows.Forms;
 
 namespace Resolve.HotKeys
 {
     public class HotKey : IMessageFilter, IDisposable
     {
-        private Keys _key;
-        private ModifierKey _modifiers;
-        private int? _id;
-        private IntPtr _handle;
         private bool _disposed;
 
         public event EventHandler Pressed;
 
-        private Keys Key
-        {
-            get
-            {
-                return _key;
-            }
-        }
+        public Keys Key { get; }
 
-        public ModifierKey Modifiers
-        {
-            get
-            {
-                return _modifiers;
-            }
-        }
+        public ModifierKey Modifiers { get; }
 
-        public short? Id
-        {
-            get
-            {
-                return _id;
-            }
-        }
+        public int? Id { get; private set; }
 
-        public IntPtr Handle
-        {
-            get
-            {
-                return _handle;
-            }
-        }
+        public IntPtr Handle { get; }
 
-        public HotKey(Keys key):this(key, ModifierKey.None, IntPtr.Zero) { }
+        public HotKey(Keys key) : this(key, ModifierKey.None, IntPtr.Zero)
+        {
+        }
 
         public HotKey(Keys key, ModifierKey modifiers) : this(key, modifiers, IntPtr.Zero)
         {
@@ -58,71 +30,77 @@ namespace Resolve.HotKeys
 
         public HotKey(Keys key, ModifierKey modifiers, IntPtr handle) : base()
         {
-            _key = key;
-            _modifiers = modifiers;
-            _handle = handle;
+            Key       = key;
+            Modifiers = modifiers;
+            Handle    = handle;
             _disposed = true;
         }
 
         public void Register()
         {
-            if (_id.HasValue)
+            if (Id.HasValue)
             {
                 return;
             }
+
             NativeMethods.SetLastError(NativeMethods.ERROR_SUCCESS);
-            _id = NativeMethods.GlobalAddAtom(GetHashCode().ToString());
+            Id = NativeMethods.GlobalAddAtom(GetHashCode().ToString());
 
             var error = Marshal.GetLastWin32Error();
 
 
             if (error != NativeMethods.ERROR_SUCCESS)
             {
-                _id = null;
+                Id = null;
                 throw new Win32Exception(error);
             }
-            var vk = unchecked((uint)(Key & ~Keys.Modifiers));
+
+            var vk = unchecked((uint) (Key & ~Keys.Modifiers));
             NativeMethods.SetLastError(NativeMethods.ERROR_SUCCESS);
-            var result = NativeMethods.RegisterHotKey(_handle, _id.Value, (uint)Modifiers, vk);
+            var result = NativeMethods.RegisterHotKey(Handle, Id.Value, (uint) Modifiers, vk);
 
             error = Marshal.GetLastWin32Error();
 
             if (error != 0)
             {
-                _id = null;
+                Id = null;
                 throw new Win32Exception(error);
             }
+
             if (result)
             {
                 Application.AddMessageFilter(this);
             }
             else
             {
-                _id = null;
+                Id = null;
             }
         }
 
         public void Unregister()
         {
-            if (_id == null)
+            if (Id == null)
             {
                 return;
             }
+
             NativeMethods.SetLastError(NativeMethods.ERROR_SUCCESS);
-            var result = NativeMethods.UnregisterHotKey(_handle, Id.Value);
-            var error = Marshal.GetLastWin32Error();
+            var result = NativeMethods.UnregisterHotKey(Handle, Id.Value);
+            var error  = Marshal.GetLastWin32Error();
             if (error != NativeMethods.ERROR_SUCCESS)
             {
                 throw new Win32Exception(error);
             }
+
             NativeMethods.SetLastError(NativeMethods.ERROR_SUCCESS);
-            NativeMethods.GlobalDeleteAtom(_id.Value);
+            NativeMethods.GlobalDeleteAtom(Id.Value);
             error = Marshal.GetLastWin32Error();
             if (error != NativeMethods.ERROR_SUCCESS)
             {
                 throw new Win32Exception(error);
             }
-            _id = null;
+
+            Id = null;
             Application.RemoveMessageFilter(this);
         }
 
@@ -131,13 +109,15 @@ namespace Resolve.HotKeys
             switch (m.Msg)
             {
                 case NativeMethods.WM_HOTKEY:
-                    if (m.HWnd == Handle && m.WParam == (IntPtr)Id && Pressed != null)
+                    if (m.HWnd == Handle && m.WParam == (IntPtr) Id && Pressed != null)
                     {
                         Pressed(this, EventArgs.Empty);
                         return true;
                     }
+
                     break;
             }
+
             return false;
         }
 
@@ -148,8 +128,8 @@ namespace Resolve.HotKeys
         }
 
         /// <summary> 
-                /// Unregister the hotkey. 
-                /// </summary> 
+        /// Unregister the hotkey. 
+        /// </summary> 
         protected virtual void Dispose(bool disposing)
         {
             // Protect from being called multiple times. 
@@ -160,7 +140,6 @@ namespace Resolve.HotKeys
 
             if (disposing)
             {
-
                 // Removes a message filter from the message pump of the application. 
 
 
@@ -168,6 +147,27 @@ namespace Resolve.HotKeys
             }
 
             _disposed = true;
+        }
+
+        protected bool Equals(HotKey other)
+        {
+            return Key == other.Key && Modifiers == other.Modifiers;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((HotKey) obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return ((int) Key * 397) ^ (int) Modifiers;
+            }
         }
     }
 }
