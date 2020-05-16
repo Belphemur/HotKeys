@@ -10,9 +10,9 @@ namespace Resolve.HotKeys
 {
     public class HotKey : IMessageFilter, IDisposable
     {
-                private Keys _key;
+        private Keys _key;
         private ModifierKey _modifiers;
-        private short? _id;
+        private int? _id;
         private IntPtr _handle;
         private bool _disposed;
 
